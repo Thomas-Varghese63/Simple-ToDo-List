@@ -1,35 +1,48 @@
-import { useState, useEffect } from "react" // Import useEffect
+import { useState, useEffect } from "react"
+import Cookies from 'js-cookie'
 import TodoApp from "./to-do.jsx"
 import AuthForm from "./auth-form.jsx"
 
 export default function App() {
   const [user, setUser] = useState(null)
   const [isLogin, setIsLogin] = useState(true)
-  const [loadingAuth, setLoadingAuth] = useState(true); // New loading state
+  const [loadingAuth, setLoadingAuth] = useState(true)
 
   useEffect(() => {
     const checkAuthStatus = async () => {
-        try {
-            const response = await fetch('http://localhost:5000/api/auth/me', {
-                credentials: 'include',
-            });
-
-            if (response.ok) {
-                const userData = await response.json();
-                setUser(userData);
-            } else {
-                setUser(null);
-            }
-        } catch (error) {
-            console.error("Failed to check auth status:", error);
-            setUser(null);
-        } finally {
-            setLoadingAuth(false);
+      try {
+        const token = Cookies.get('token')
+        if (!token) {
+          setUser(null)
+          setLoadingAuth(false)
+          return
         }
-    };
 
-    checkAuthStatus();
-}, []);
+        const response = await fetch('http://localhost:5000/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        })
+
+        if (response.ok) {
+          const userData = await response.json()
+          setUser(userData)
+        } else {
+          Cookies.remove('token')
+          setUser(null)
+        }
+      } catch (error) {
+        console.error("Auth check failed:", error)
+        setUser(null)
+      } finally {
+        setLoadingAuth(false)
+      }
+    }
+
+    checkAuthStatus()
+  }, [])
 
   const handleAuth = (userData) => {
     setUser(userData)

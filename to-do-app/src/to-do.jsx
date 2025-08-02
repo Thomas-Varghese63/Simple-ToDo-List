@@ -1,4 +1,4 @@
-import Cookies from 'js-cookie'
+
 import { useState, useEffect } from "react"
 
 import { Check, Plus, Calendar, Flag, Edit3, Trash2, Star, LogOut, User } from "lucide-react"
@@ -336,7 +336,8 @@ const toggleTask = async (id) => {
               <div className="action-buttons">
                 {editingTask !== task._id && (
                   <button onClick={() => startEditing(task)} className="action-button edit-button" title="Edit task">
-                    <Edit3 size={14} />
+                   <div className="icon">
+                    <Edit3 size={14} /></div>
                   </button>
                 )}
 
@@ -344,8 +345,8 @@ const toggleTask = async (id) => {
                     onClick={() => deleteTask(task._id)} 
                     className="action-button delete-button"
                     title="Delete task"
-                >
-                  <Trash2 size={14} />
+                > <div className="icon2">
+                  <Trash2 size={14} /></div>
                 </button>
               </div>
             </li>

@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const User = require('../models/userModel');
@@ -108,19 +107,18 @@ router.post('/logout', (req, res) => {
 // GET /api/auth/me
 
 router.get('/me', protect, async (req, res) => {
-    try {
-        // User info is already attached to req by protect middleware
-        const user = {
-            id: req.user._id,
-            name: req.user.name,
-            email: req.user.email
-        };
-        res.json(user);
-    } catch (error) {
-        console.error('Error fetching user info:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
-});
+  try {
+    // User is already attached by protect middleware
+    res.json({
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email
+    })
+  } catch (error) {
+    console.error('Error fetching user data:', error)
+    res.status(500).json({ message: 'Error fetching user data' })
+  }
+})
 
 
 module.exports = router;

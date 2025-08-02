@@ -16,11 +16,11 @@ const MONGODB_URI = process.env.MONGODB_URI;
 
 // --- Middleware ---
 app.use(cors({
-    origin: 'http://localhost:5173', // Your React app's URL
-    credentials: true // Enable credentials (cookies)
-}));
-app.use(express.json());
-app.use(cookieParser()); // Add this line
+  origin: 'http://localhost:5173', // Your React app URL
+  credentials: true
+}))
+app.use(cookieParser())
+app.use(express.json())
 
 // --- MongoDB Connection ---
 mongoose.connect(MONGODB_URI)
