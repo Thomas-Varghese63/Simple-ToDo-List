@@ -1,4 +1,3 @@
-
 import Cookies from 'js-cookie'
 import { useState, useEffect } from "react"
 
@@ -101,23 +100,29 @@ const toggleTask = async (id) => {
     }
   };
 
-   const deleteTask = async (id) => {
+   const deleteTask = async (taskId) => {
+    if (!taskId) {
+        console.error('No task ID provided');
+        return;
+    }
+
     try {
-      const response = await fetch(`${API_URL}/${id}`, {
-        method: 'DELETE',
-        credentials: 'include', // Send cookies with this request
-      });
-      if (response.status === 401) {
-          onLogout();
-          return;
-      }
-      if (response.ok) {
-         setTasks(tasks.filter((task) => task._id !== id));
-      } else {
-         console.error('Failed to delete task:', await response.json());
-      }
+        const response = await fetch(`${API_URL}/${taskId}`, {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            setTasks(prevTasks => prevTasks.filter(task => task._id !== taskId));
+        } else {
+            const errorData = await response.json();
+            console.error('Failed to delete task:', errorData);
+        }
     } catch (error) {
-      console.error('Error deleting task:', error);
+        console.error('Error deleting task:', error);
     }
   };
 
@@ -282,21 +287,21 @@ const toggleTask = async (id) => {
         <ul className="task-list">
           {tasks.map((task) => (
             <li
-              key={task.id}
+              key={task._id}
               className={`task-item ${task.completed ? "task-item-completed" : ""} ${
                 isOverdue(task.dueDate) && !task.completed ? "task-item-overdue" : ""
               }`}
             >
               <div className="task-left">
                 <button
-                  onClick={() => toggleTask(task.id)}
+                  onClick={() => toggleTask(task._id)}
                   className={`check-button ${task.completed ? "check-button-active" : ""}`}
                 >
                   {task.completed && <Check size={16} />}
                 </button>
 
                 <div className="task-content">
-                  {editingTask === task.id ? (
+                  {editingTask === task._id ? (
                     <input
                       type="text"
                       value={editText}
@@ -329,13 +334,17 @@ const toggleTask = async (id) => {
               </div>
 
               <div className="action-buttons">
-                {editingTask !== task.id && (
+                {editingTask !== task._id && (
                   <button onClick={() => startEditing(task)} className="action-button edit-button" title="Edit task">
                     <Edit3 size={14} />
                   </button>
                 )}
 
-                <button onClick={() => deleteTask(task.id)} className="action-button delete-button" title="Delete task">
+                <button 
+                    onClick={() => deleteTask(task._id)} 
+                    className="action-button delete-button"
+                    title="Delete task"
+                >
                   <Trash2 size={14} />
                 </button>
               </div>

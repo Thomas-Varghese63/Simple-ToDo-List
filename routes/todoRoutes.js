@@ -3,6 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const Todo = require('../models/todoModel');
+const mongoose = require('mongoose'); // Add this line
 const { protect } = require('../middleware/authMiddleware'); // Import middleware
 
 // --- API Endpoints (CRUD Operations) ---
@@ -84,20 +85,26 @@ router.patch('/:id', protect, async (req, res) => { // Apply protect middleware
 // DELETE a To-Do item by ID for the authenticated user
 router.delete('/:id', protect, async (req, res) => { // Apply protect middleware
     const { id } = req.params;
+    
     try {
-        // Find task by ID and ensure it belongs to the authenticated user
-        const deletedTodo = await Todo.findOneAndDelete({ _id: id, user: req.user.id });
+        // Validate ObjectId format
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid To-Do ID format.' });
+        }
+
+        const deletedTodo = await Todo.findOneAndDelete({
+            _id: id,
+            user: req.user.id
+        });
 
         if (!deletedTodo) {
             return res.status(404).json({ message: 'To-Do item not found or not authorized.' });
         }
+
         res.status(200).json({ message: 'To-Do item deleted successfully.' });
     } catch (error) {
         console.error('Error deleting todo:', error);
-        if (error.name === 'CastError') {
-            return res.status(400).json({ message: 'Invalid To-Do ID format.' });
-        }
-        res.status(500).json({ message: 'Server error deleting todo', error: error.message });
+        res.status(500).json({ message: 'Server error deleting todo' });
     }
 });
 
