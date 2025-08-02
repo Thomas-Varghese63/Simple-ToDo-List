@@ -5,36 +5,39 @@ require('dotenv').config();
 
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors'); // Import CORS to handle cross-origin requests from frontend
-const todoRoutes = require('./routes/todoRoutes'); // Import your To-Do routes
+const cors = require('cors');
+const cookieParser = require('cookie-parser'); // Add this line
+const todoRoutes = require('./routes/todoRoutes');
+const authRoutes = require('./routes/authRoutes'); // Add this line
 
 const app = express();
-const PORT = process.env.PORT || 5000; // Backend will run on port 5000
+const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
 // --- Middleware ---
-// Enable CORS for all origins during development. In production, you might restrict this.
-app.use(cors());
-// Parse JSON request bodies
+app.use(cors({
+    origin: 'http://localhost:5173', // Your React app's URL
+    credentials: true // Enable credentials (cookies)
+}));
 app.use(express.json());
+app.use(cookieParser()); // Add this line
 
 // --- MongoDB Connection ---
 mongoose.connect(MONGODB_URI)
     .then(() => console.log('MongoDB connected successfully!'))
     .catch(err => {
         console.error('MongoDB connection error:', err);
-        // Exit process if DB connection fails
         process.exit(1);
     });
 
 // --- API Routes ---
-// Mount the To-Do routes under the /api/todos path
+app.use('/api/auth', authRoutes); // Add auth routes
 app.use('/api/todos', todoRoutes);
 
-// --- Error Handling Middleware (Optional but recommended) ---
+// --- Error Handling Middleware ---
 app.use((err, req, res, next) => {
-    console.error(err.stack); // Log the error stack for debugging
-    res.status(500).send('Something broke!'); // Send a generic error response
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
 });
 
 // --- Start the Server ---

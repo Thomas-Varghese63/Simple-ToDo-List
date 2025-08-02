@@ -1,9 +1,11 @@
-// D:\to-do-list\models\todoModel.js
 
 const mongoose = require('mongoose');
-
-// --- Mongoose Schema for Todo Tasks ---
 const todoSchema = new mongoose.Schema({
+     user: { 
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'User' // References the User model
+    },
     text: {
         type: String,
         required: [true, 'Task text is required'],
@@ -28,7 +30,6 @@ const todoSchema = new mongoose.Schema({
     }
 });
 
-// Create the Mongoose Model from the schema and export it
 const Todo = mongoose.model('Todo', todoSchema);
 
-module.exports = Todo; // Export the Todo model
+module.exports = Todo; 

@@ -1,7 +1,8 @@
-"use client"
 
+import Cookies from 'js-cookie'
 import { useState, useEffect } from "react"
-import { Check, Plus, Calendar, Flag, Edit3, Trash2, Star } from "lucide-react"
+
+import { Check, Plus, Calendar, Flag, Edit3, Trash2, Star, LogOut, User } from "lucide-react"
 import "./todo-app.css"
 
 const API_URL = 'http://localhost:5000/api/todos';
@@ -12,7 +13,9 @@ const priorities = [
   { value: "high", label: "High", color: "#ef4444" },
 ]
 
-export default function Component() {
+export default function TodoApp({ user = {}, onLogout = () => {} }) {
+  console.log('User data:', user); // Add this line to debug
+
   const [tasks, setTasks] = useState([])
   const [newTask, setNewTask] = useState("")
   const [newPriority, setNewPriority] = useState("")
@@ -25,13 +28,23 @@ export default function Component() {
     fetchTasks();
   }, []);
 
+  // Fallback for user name
+  const userName = user?.name ? user.name : "User";
   const fetchTasks = async () => {
     try {
-      const response = await fetch(API_URL);
+      const response = await fetch(API_URL, {
+        credentials: 'include', // Send cookies with this request
+      });
+      if (response.status === 401) {
+          // If not authorized, redirect to login
+          onLogout();
+          return;
+      }
       const data = await response.json();
       setTasks(data);
     } catch (error) {
       console.error('Error fetching tasks:', error);
+      // Consider handling network errors or session expiry more gracefully
     }
   };
 
@@ -48,7 +61,12 @@ export default function Component() {
             priority: newPriority,
             dueDate: newDueDate || undefined,
           }),
+          credentials: 'include', // Send cookies with this request
         });
+        if (response.status === 401) {
+            onLogout();
+            return;
+        }
         const savedTask = await response.json();
         setTasks([savedTask, ...tasks]);
         setNewTask("");
@@ -60,7 +78,7 @@ export default function Component() {
     }
   };
 
-  const toggleTask = async (id) => {
+const toggleTask = async (id) => {
     try {
       const task = tasks.find(t => t._id === id);
       const response = await fetch(`${API_URL}/${id}`, {
@@ -71,7 +89,12 @@ export default function Component() {
         body: JSON.stringify({
           completed: !task.completed,
         }),
+        credentials: 'include', // Send cookies with this request
       });
+      if (response.status === 401) {
+          onLogout();
+          return;
+      }
       const updatedTask = await response.json();
       setTasks(tasks.map((task) => (task._id === id ? updatedTask : task)));
     } catch (error) {
@@ -79,12 +102,21 @@ export default function Component() {
     }
   };
 
-  const deleteTask = async (id) => {
+   const deleteTask = async (id) => {
     try {
-      await fetch(`${API_URL}/${id}`, {
+      const response = await fetch(`${API_URL}/${id}`, {
         method: 'DELETE',
+        credentials: 'include', // Send cookies with this request
       });
-      setTasks(tasks.filter((task) => task._id !== id));
+      if (response.status === 401) {
+          onLogout();
+          return;
+      }
+      if (response.ok) {
+         setTasks(tasks.filter((task) => task._id !== id));
+      } else {
+         console.error('Failed to delete task:', await response.json());
+      }
     } catch (error) {
       console.error('Error deleting task:', error);
     }
@@ -95,7 +127,7 @@ export default function Component() {
     setEditText(task.text)
   }
 
-  const saveEdit = async () => {
+    const saveEdit = async () => {
     if (editText.trim() !== "") {
       try {
         const response = await fetch(`${API_URL}/${editingTask}`, {
@@ -106,7 +138,12 @@ export default function Component() {
           body: JSON.stringify({
             text: editText.trim(),
           }),
+          credentials: 'include', // Send cookies with this request
         });
+        if (response.status === 401) {
+            onLogout();
+            return;
+        }
         const updatedTask = await response.json();
         setTasks(tasks.map((task) => (task._id === editingTask ? updatedTask : task)));
         setEditingTask(null);
@@ -116,6 +153,18 @@ export default function Component() {
       }
     }
   }
+
+    const handleLogoutClick = async () => {
+    try {
+      await fetch('http://localhost:5000/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include', // Send cookies to clear the Http Only cookie
+      });
+      onLogout(); // Update the parent state to show the login form
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
@@ -153,22 +202,33 @@ export default function Component() {
   return (
     <div className="container">
       <div className="card">
-        {/* Header */}
+        {/* Header with User Info */}
         <div className="header">
-          <h1 className="title">✨ My To-Do List</h1>
-          <div className="stats">
-            <div className="stat-item">
-              <span className="stat-number">{totalTasks}</span>
-              <span className="stat-label">Total</span>
+          <div className="header-left">
+            <h1 className="title">✨ My To-Do List</h1>
+            <div className="user-info" title={`Logged in as ${userName}`}>
+              <User size={16} />
+              <span>Welcome, {userName}!</span>
             </div>
-            <div className="stat-item">
-              <span className="stat-number">{completedTasks}</span>
-              <span className="stat-label">Done</span>
+          </div>
+          <div className="header-right">
+            <div className="stats">
+              <div className="stat-item">
+                <span className="stat-number">{totalTasks}</span>
+                <span className="stat-label">Total</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-number">{completedTasks}</span>
+                <span className="stat-label">Done</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-number">{Math.round(completionPercentage)}%</span>
+                <span className="stat-label">Progress</span>
+              </div>
             </div>
-            <div className="stat-item">
-              <span className="stat-number">{Math.round(completionPercentage)}%</span>
-              <span className="stat-label">Progress</span>
-            </div>
+            <button onClick={onLogout} className="logout-button" title="Logout">
+              <LogOut size={18} />
+            </button>
           </div>
         </div>
 
@@ -223,21 +283,21 @@ export default function Component() {
         <ul className="task-list">
           {tasks.map((task) => (
             <li
-              key={task._id}  // Changed from task.id
+              key={task.id}
               className={`task-item ${task.completed ? "task-item-completed" : ""} ${
                 isOverdue(task.dueDate) && !task.completed ? "task-item-overdue" : ""
               }`}
             >
               <div className="task-left">
                 <button
-                  onClick={() => toggleTask(task._id)}  // Changed from task.id
+                  onClick={() => toggleTask(task.id)}
                   className={`check-button ${task.completed ? "check-button-active" : ""}`}
                 >
                   {task.completed && <Check size={16} />}
                 </button>
 
                 <div className="task-content">
-                  {editingTask === task._id ? (
+                  {editingTask === task.id ? (
                     <input
                       type="text"
                       value={editText}
@@ -249,16 +309,16 @@ export default function Component() {
                     />
                   ) : (
                     <div>
-                      <span className={`task-text ${task.completed ? "task-text-completed" : ""}`}>
-                        {task.text}
-                      </span>
+                      <span className={`task-text ${task.completed ? "task-text-completed" : ""}`}>{task.text}</span>
                       <div className="task-meta">
                         <span className="priority-tag" style={{ color: getPriorityColor(task.priority) }}>
                           <Flag size={12} />
                           {task.priority}
                         </span>
                         {task.dueDate && (
-                          <span className={`due-date-tag ${isOverdue(task.dueDate) && !task.completed ? "overdue" : ""}`}>
+                          <span
+                            className={`due-date-tag ${isOverdue(task.dueDate) && !task.completed ? "overdue" : ""}`}
+                          >
                             <Calendar size={12} />
                             {new Date(task.dueDate).toLocaleDateString()}
                           </span>
@@ -270,25 +330,14 @@ export default function Component() {
               </div>
 
               <div className="action-buttons">
-                {editingTask !== task._id && (
-                  <button
-                    onClick={() => startEditing(task)}
-                    className="action-button edit-button"
-                    title="Edit task"
-                  >
-                    <div className="icon">
-                      <Edit3 size={14} />
-                    </div>
+                {editingTask !== task.id && (
+                  <button onClick={() => startEditing(task)} className="action-button edit-button" title="Edit task">
+                    <Edit3 size={14} />
                   </button>
                 )}
-                <button
-                  onClick={() => deleteTask(task._id)}
-                  className="action-button delete-button"
-                  title="Delete task"
-                >
-                  <div className="icon2">
+
+                <button onClick={() => deleteTask(task.id)} className="action-button delete-button" title="Delete task">
                   <Trash2 size={14} />
-                  </div>
                 </button>
               </div>
             </li>

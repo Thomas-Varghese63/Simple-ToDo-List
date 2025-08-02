@@ -52,6 +52,28 @@ body {
   margin: 0;
   letter-spacing: -0.025em;
 }
+.user-info {
+  display: flex;
+  align-items: center;
+  margin-top: 20px;
+  gap: 2px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #4b5563; /* Gray-700 */
+  -webkit-user-select: none; /* Safari 3+ */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE10+ */
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 700px;
+}
+
+.user-info span {
+  color: #843d8d; /* Gray-800 */
+}
+
 
 .stats {
   display: flex;

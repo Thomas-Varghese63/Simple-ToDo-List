@@ -1,15 +1,16 @@
-
+// D:\to-do-list\routes\todoRoutes.js
 
 const express = require('express');
-const router = express.Router(); // Create a new router instance
-const Todo = require('../models/todoModel'); // Import the Todo model
+const router = express.Router();
+const Todo = require('../models/todoModel');
+const { protect } = require('../middleware/authMiddleware'); // Import middleware
 
 // --- API Endpoints (CRUD Operations) ---
 
-// GET all To-Do items
-router.get('/', async (req, res) => {
+// GET all To-Do items for the authenticated user
+router.get('/', protect, async (req, res) => { // Apply protect middleware
     try {
-        const todos = await Todo.find({}).sort({ createdAt: -1 }); // Sort by newest first
+        const todos = await Todo.find({ user: req.user.id }).sort({ createdAt: -1 }); // Filter by user ID
         res.status(200).json(todos);
     } catch (error) {
         console.error('Error fetching todos:', error);
@@ -17,8 +18,8 @@ router.get('/', async (req, res) => {
     }
 });
 
-// POST a new To-Do item
-router.post('/', async (req, res) => {
+// POST a new To-Do item for the authenticated user
+router.post('/', protect, async (req, res) => { // Apply protect middleware
     const { text, priority, dueDate } = req.body;
 
     if (!text || text.trim() === '') {
@@ -27,6 +28,7 @@ router.post('/', async (req, res) => {
 
     try {
         const newTodo = new Todo({
+            user: req.user.id, // Assign task to the authenticated user
             text: text.trim(),
             priority: priority || '',
             dueDate: dueDate ? new Date(dueDate) : null
@@ -42,8 +44,8 @@ router.post('/', async (req, res) => {
     }
 });
 
-// PATCH (Update) a To-Do item by ID
-router.patch('/:id', async (req, res) => {
+// PATCH (Update) a To-Do item by ID for the authenticated user
+router.patch('/:id', protect, async (req, res) => { // Apply protect middleware
     const { id } = req.params;
     const updates = req.body;
 
@@ -52,15 +54,20 @@ router.patch('/:id', async (req, res) => {
     }
 
     try {
+        // Find task by ID and ensure it belongs to the authenticated user
+        const todo = await Todo.findOne({ _id: id, user: req.user.id });
+
+        if (!todo) {
+            return res.status(404).json({ message: 'To-Do item not found or not authorized.' });
+        }
+
+        // Update the task
         const updatedTodo = await Todo.findByIdAndUpdate(
             id,
             { $set: updates },
             { new: true, runValidators: true }
         );
 
-        if (!updatedTodo) {
-            return res.status(404).json({ message: 'To-Do item not found.' });
-        }
         res.status(200).json(updatedTodo);
     } catch (error) {
         console.error('Error updating todo:', error);
@@ -74,13 +81,15 @@ router.patch('/:id', async (req, res) => {
     }
 });
 
-// DELETE a To-Do item by ID
-router.delete('/:id', async (req, res) => {
+// DELETE a To-Do item by ID for the authenticated user
+router.delete('/:id', protect, async (req, res) => { // Apply protect middleware
     const { id } = req.params;
     try {
-        const deletedTodo = await Todo.findByIdAndDelete(id);
+        // Find task by ID and ensure it belongs to the authenticated user
+        const deletedTodo = await Todo.findOneAndDelete({ _id: id, user: req.user.id });
+
         if (!deletedTodo) {
-            return res.status(404).json({ message: 'To-Do item not found.' });
+            return res.status(404).json({ message: 'To-Do item not found or not authorized.' });
         }
         res.status(200).json({ message: 'To-Do item deleted successfully.' });
     } catch (error) {
@@ -92,4 +101,4 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-module.exports = router; // Export the router
+module.exports = router;
