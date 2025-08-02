@@ -14,8 +14,7 @@ const priorities = [
 ]
 
 export default function TodoApp({ user = {}, onLogout = () => {} }) {
-  console.log('User data:', user); // Add this line to debug
-
+ 
   const [tasks, setTasks] = useState([])
   const [newTask, setNewTask] = useState("")
   const [newPriority, setNewPriority] = useState("")
